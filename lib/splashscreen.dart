@@ -31,14 +31,16 @@ class _SplashScreenState extends State<SplashScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF232526), // dark gray
-              Color(0xFF2A2A2E),
-              Color(0xFF3A2313),
-              Color(0xFF3A2313),
-              Color(0xFF1A1A1D),
-              Color(0xFF000000),
+              Color(0xFF8B5A3C), // warm brown at top
+              Color(0xFF6B4226), // medium brown
+              Color(0xFF4A2C17), // darker brown
+              Color(0xFF3B1F0F), // deep brown
+              Color(0xFF2C1409), // very dark brown
+              Color(0xFF1A0A05), // near black brown
+              Color(0xFF0D0502), // darkest brown
+              Color(0xFF000000), // pure black
             ],
-            stops: [0.0, 0.2, 0.45, 0.65, 0.85, 1.0],
+            stops: [0.0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1.0],
           ),
           borderRadius: BorderRadius.all(Radius.circular(25)),
           boxShadow: [

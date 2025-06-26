@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'signin_page.dart';
+import 'signup_page.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -21,29 +22,29 @@ class WelcomeScreen extends StatelessWidget {
           SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 60),
+                const SizedBox(height: 100),
                 // Logo
                 SvgPicture.asset('assets/wise.svg', width: 90, height: 110),
-                const SizedBox(height: 32),
+                const SizedBox(height: 56),
                 // Headline
                 const Text(
                   'FOCUSED ON THE FUTURE',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 22,
+                    fontSize: 30,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF3A2313),
                     letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 32),
                 // Subheadline
                 const Text(
                   'TRASFORMIAMO LE CRITICITÀ IN\nOPPORTUNITÀ',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 15, color: Color(0xFF3A2313)),
+                  style: TextStyle(fontSize: 20, color: Color(0xFF3A2313)),
                 ),
-                const Spacer(),
+                const SizedBox(height: 64),
                 // Buttons
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -75,13 +76,13 @@ class WelcomeScreen extends StatelessWidget {
                             style: TextStyle(
                               color: Color(0xFF3A2313),
                               fontWeight: FontWeight.w600,
-                              fontSize: 16,
+                              fontSize: 18,
                               letterSpacing: 1.2,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
                         height: 45,
@@ -93,18 +94,24 @@ class WelcomeScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(25),
                             ),
                           ),
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const SignUpPage(),
+                              ),
+                            );
+                          },
                           child: const Text(
                             'SIGN UP',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              fontSize: 16,
+                              fontSize: 18,
                               letterSpacing: 1.2,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 48),
                     ],
                   ),
                 ),

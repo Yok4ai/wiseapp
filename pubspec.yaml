@@ -61,7 +61,6 @@ flutter:
   assets:
     - assets/wise.svg
     - assets/WelcomeScreen.png
-    - assets/Star.svg
     - assets/Star.png
 
   # To add assets to your application, add an assets section, like this:

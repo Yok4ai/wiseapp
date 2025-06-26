@@ -1,23 +1,18 @@
 import 'package:flutter/material.dart';
-import 'signup_page.dart';
-import 'forgot_password_page.dart';
 
-class SignInPage extends StatefulWidget {
-  const SignInPage({super.key});
+class ForgotPasswordPage extends StatefulWidget {
+  const ForgotPasswordPage({super.key});
 
   @override
-  State<SignInPage> createState() => _SignInPageState();
+  State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
 
-class _SignInPageState extends State<SignInPage> {
+class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
@@ -28,7 +23,7 @@ class _SignInPageState extends State<SignInPage> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Gradient header with SVG background
+          // Gradient header with Star background
           Container(
             height: headerHeight,
             width: double.infinity,
@@ -38,24 +33,12 @@ class _SignInPageState extends State<SignInPage> {
                 end: Alignment.bottomCenter,
                 colors: [Color(0xFF3A2313), Color(0xFF9E8264)],
               ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
-              ),
             ),
             child: Stack(
               children: [
-                // SVG background with clipping
                 Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(28),
-                      bottomRight: Radius.circular(28),
-                    ),
-                    child: Image.asset('assets/Star.png', fit: BoxFit.cover),
-                  ),
+                  child: Image.asset('assets/Star.png', fit: BoxFit.cover),
                 ),
-                // Header text
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
@@ -66,7 +49,7 @@ class _SignInPageState extends State<SignInPage> {
                     children: const [
                       SizedBox(height: 16),
                       Text(
-                        'Get Started now',
+                        'Forgot Password',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
@@ -77,7 +60,7 @@ class _SignInPageState extends State<SignInPage> {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Create an account or log in to explore about our app',
+                        'Enter your email to reset your password',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w400,
@@ -109,7 +92,7 @@ class _SignInPageState extends State<SignInPage> {
                   ),
                 ],
               ),
-              transform: Matrix4.translationValues(0, -56, 0),
+              transform: Matrix4.translationValues(0, -56, 0), // ← ADDED (moved up 56px)
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
@@ -118,9 +101,7 @@ class _SignInPageState extends State<SignInPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(
-                      height: 64,
-                    ), // Extra space to account for larger transform
+                    const SizedBox(height: 8),
                     // Email Field
                     const Text(
                       'Email',
@@ -150,77 +131,8 @@ class _SignInPageState extends State<SignInPage> {
                       height: 1,
                       color: const Color(0xFFC1C1C1).withOpacity(0.87),
                     ),
-                    const SizedBox(height: 24),
-                    // Password Field
-                    const Text(
-                      'Password',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                        fontSize: 16,
-                        color: Colors.black,
-                      ),
-                    ),
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w400,
-                        fontSize: 14,
-                        color: Color(0xFF888888),
-                      ),
-                      decoration: InputDecoration(
-                        hintText: '••••••••',
-                        hintStyle: const TextStyle(color: Color(0xFF888888)),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 4,
-                        ),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: Colors.grey,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                    Container(
-                      height: 1,
-                      color: const Color(0xFFC1C1C1).withOpacity(0.87),
-                    ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const ForgotPasswordPage(),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          'Forget password?',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w400,
-                            fontSize: 13,
-                            color: Color(0xFF3A2313),
-                          ),
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 32),
-                    // Sign In Button
+                    // Next Button
                     SizedBox(
                       width: double.infinity,
                       height: 45,
@@ -234,7 +146,7 @@ class _SignInPageState extends State<SignInPage> {
                         ),
                         onPressed: () {},
                         child: const Text(
-                          'SIGN IN',
+                          'NEXT',
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w600,
@@ -245,29 +157,16 @@ class _SignInPageState extends State<SignInPage> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    // Sign Up Prompt
+                    // Back to Sign In
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          "Dont have an account?",
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w400,
-                            fontSize: 14,
-                            color: Color(0xFF888888),
-                          ),
-                        ),
                         TextButton(
                           onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const SignUpPage(),
-                              ),
-                            );
+                            Navigator.of(context).pop();
                           },
                           child: const Text(
-                            'Sign Up',
+                            'Back to Sign In',
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w600,
