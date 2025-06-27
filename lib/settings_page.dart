@@ -3,313 +3,195 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'signin_page.dart';
 import 'home_page.dart';
 import 'activity_page.dart';
+import 'user_data_manager.dart';
 
-class SettingsPage extends StatefulWidget {
+class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
-
-  @override
-  State<SettingsPage> createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends State<SettingsPage> {
-  bool _notificationsEnabled = true;
-  bool _biometricEnabled = false;
-  bool _darkModeEnabled = false;
-  String _language = 'English';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
-      _biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
-      _darkModeEnabled = prefs.getBool('dark_mode_enabled') ?? false;
-      _language = prefs.getString('language') ?? 'English';
-    });
-  }
-
-  Future<void> _saveSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('notifications_enabled', _notificationsEnabled);
-    await prefs.setBool('biometric_enabled', _biometricEnabled);
-    await prefs.setBool('dark_mode_enabled', _darkModeEnabled);
-    await prefs.setString('language', _language);
-  }
-
-  Future<void> _logout() async {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final userToken = prefs.getString('access_token');
-                
-                // Clear user-specific data
-                if (userToken != null) {
-                  final today = DateTime.now();
-                  final todayKey = '${today.day}-${today.month}-${today.year}';
-                  
-                  // Remove user-specific check-in/out data
-                  await prefs.remove('checkedIn_${userToken}_$todayKey');
-                  await prefs.remove('checkedOut_${userToken}_$todayKey');
-                  await prefs.remove('checkInTime_${userToken}_$todayKey');
-                  await prefs.remove('checkOutTime_${userToken}_$todayKey');
-                  await prefs.remove('current_activity_$userToken');
-                }
-                
-                // Remove access token
-                await prefs.remove('access_token');
-                
-                if (mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const SignInPage()),
-                    (route) => false,
-                  );
-                }
-              },
-              child: const Text('Logout', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
-      appBar: AppBar(
-        title: const Text('Settings'),
-        backgroundColor: const Color(0xFF3A2313),
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: const Color(0xFFEBE9E7),
+      body: Column(
         children: [
-          // Profile Section
+          // Header
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(
+              top: 48,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
               ],
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(26),
+                bottomRight: Radius.circular(26),
+              ),
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundImage: const AssetImage('assets/WelcomeScreen.png'),
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Colors.black,
+                    size: 24,
+                  ),
+                  onPressed: () => Navigator.of(context).maybePop(),
                 ),
-                const SizedBox(width: 16),
                 const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Demo User',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 18,
-                          color: Color(0xFF222831),
-                        ),
+                  child: Center(
+                    child: Text(
+                      'Settings',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        color: Colors.black,
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Employee (Demo)',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w400,
-                          fontSize: 14,
-                          color: Color(0xFFBABCBF),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Color(0xFFBABCBF),
-                  size: 16,
-                ),
+                SizedBox(width: 48), // To balance the back arrow
               ],
             ),
           ),
-
-          const SizedBox(height: 24),
-
-          // App Settings
-          _SettingsSection(
-            title: 'App Settings',
-            children: [
-              _SettingsTile(
-                icon: Icons.notifications_outlined,
-                title: 'Notifications',
-                subtitle: 'Receive push notifications',
-                trailing: Switch(
-                  value: _notificationsEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _notificationsEnabled = value;
-                    });
-                    _saveSettings();
-                  },
-                  activeColor: const Color(0xFF3A2313),
-                ),
-              ),
-              _SettingsTile(
-                icon: Icons.fingerprint,
-                title: 'Biometric Login',
-                subtitle: 'Use fingerprint or face ID',
-                trailing: Switch(
-                  value: _biometricEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _biometricEnabled = value;
-                    });
-                    _saveSettings();
-                  },
-                  activeColor: const Color(0xFF3A2313),
-                ),
-              ),
-              _SettingsTile(
-                icon: Icons.dark_mode_outlined,
-                title: 'Dark Mode',
-                subtitle: 'Switch to dark theme',
-                trailing: Switch(
-                  value: _darkModeEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _darkModeEnabled = value;
-                    });
-                    _saveSettings();
-                  },
-                  activeColor: const Color(0xFF3A2313),
-                ),
-              ),
-              _SettingsTile(
-                icon: Icons.language_outlined,
-                title: 'Language',
-                subtitle: _language,
-                trailing: const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Color(0xFFBABCBF),
-                  size: 16,
-                ),
-                onTap: () {
-                  _showLanguageSelector();
-                },
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Account Settings
-          _SettingsSection(
-            title: 'Account',
-            children: [
-              _SettingsTile(
-                icon: Icons.lock_outline,
-                title: 'Change Password',
-                subtitle: 'Update your password',
-                trailing: const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Color(0xFFBABCBF),
-                  size: 16,
-                ),
-                onTap: () {
-                  // Navigate to change password
-                },
-              ),
-              _SettingsTile(
-                icon: Icons.privacy_tip_outlined,
-                title: 'Privacy Policy',
-                subtitle: 'Read our privacy policy',
-                trailing: const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Color(0xFFBABCBF),
-                  size: 16,
-                ),
-                onTap: () {
-                  // Navigate to privacy policy
-                },
-              ),
-              _SettingsTile(
-                icon: Icons.info_outline,
-                title: 'About',
-                subtitle: 'App version 1.0.0',
-                trailing: const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Color(0xFFBABCBF),
-                  size: 16,
-                ),
-                onTap: () {
-                  // Show about dialog
-                },
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Logout
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: _SettingsTile(
-              icon: Icons.logout,
-              title: 'Logout',
-              subtitle: 'Sign out of your account',
-              trailing: const Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.red,
-                size: 16,
-              ),
-              onTap: _logout,
-              titleColor: Colors.red,
-            ),
-          ),
-
           const SizedBox(height: 32),
+          // Section Title
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 30.0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'General Settings',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 16,
+                  color: Color(0xFF3A2313),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Settings Card
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  _SettingsRow(
+                    title: 'User Profile',
+                    onTap: () async {
+                      // Show loading dialog while fetching profile
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) =>
+                            const Center(child: CircularProgressIndicator()),
+                      );
+                      final profile = await UserDataManager.instance
+                          .getProfile();
+                      Navigator.of(context).pop(); // Remove loading dialog
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => ProfilePage(profile: profile),
+                        ),
+                      );
+                    },
+                  ),
+                  _SettingsRow(
+                    title: 'Help & Support',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const HelpFormPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  _SettingsRow(
+                    title: 'Privacy Policy',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const PrivacyPolicyPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  _SettingsRow(
+                    title: 'Terms & Conditions',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const TermsAndConditionsPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  _SettingsRow(
+                    title: 'Logout',
+                    isLogout: true,
+                    onTap: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Logout'),
+                          content: const Text(
+                            'Are you sure you want to logout?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text(
+                                'Logout',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const SignInPage(),
+                          ),
+                          (route) => false,
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: Container(
-        margin: EdgeInsets.only(
-          bottom: MediaQuery.of(context).padding.bottom,
-        ),
-        height: 70 + MediaQuery.of(context).padding.bottom,
+        height: 74 + MediaQuery.of(context).padding.bottom,
         width: double.infinity,
         decoration: const BoxDecoration(
           color: Color(0xFF3A2313),
@@ -327,12 +209,10 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               _NavItem(
                 label: 'Home',
-                icon: Icons.home,
+                icon: Icons.home_outlined,
                 onTap: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => const HomePage(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const HomePage()),
                   );
                 },
               ),
@@ -351,9 +231,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 label: 'Settings',
                 icon: Icons.settings,
                 selected: true,
-                onTap: () {
-                  // Already on settings page
-                },
+                onTap: () {},
               ),
             ],
           ),
@@ -361,43 +239,50 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
+}
 
-  void _showLanguageSelector() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Select Language',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                ),
+class _SettingsRow extends StatelessWidget {
+  final String title;
+  final bool isLogout;
+  final VoidCallback onTap;
+
+  const _SettingsRow({
+    required this.title,
+    this.isLogout = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        child: Row(
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w400,
+                fontSize: 13,
+                color: isLogout
+                    ? const Color(0xFFE88282)
+                    : const Color(0xFF222831),
               ),
-              const SizedBox(height: 16),
-              ...['English', 'Spanish', 'French', 'German'].map((lang) {
-                return ListTile(
-                  title: Text(lang),
-                  trailing: _language == lang
-                      ? const Icon(Icons.check, color: Color(0xFF3A2313))
-                      : null,
-                  onTap: () {
-                    setState(() {
-                      _language = lang;
-                    });
-                    _saveSettings();
-                    Navigator.pop(context);
-                  },
-                );
-              }).toList(),
-            ],
-          ),
-        );
-      },
+            ),
+            const Spacer(),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: isLogout
+                  ? const Color(0xFFE88282)
+                  : const Color(0xFFBABCBF),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -439,120 +324,374 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-class _SettingsSection extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-
-  const _SettingsSection({
-    required this.title,
-    required this.children,
-  });
+class PrivacyPolicyPage extends StatelessWidget {
+  const PrivacyPolicyPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-              color: Color(0xFF222831),
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.black),
+        title: const Text(
+          'Privacy Policy',
+          style: TextStyle(
+            color: Colors.black,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+      ),
+      backgroundColor: const Color(0xFFEBE9E7),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: SingleChildScrollView(
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF3A2313),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'By accessing and using the Business Coach Chatbot, you agree to the following terms:',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 18),
+                Text(
+                  '''General Guidance Only
+The chatbot offers general business advice and guidance. It is not intended to replace professional consulting or legal services.''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '''Subscription Plans
+We offer both free and paid subscription options. Paid subscriptions are billed on a recurring basis unless canceled by the user.''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '''Data Privacy
+Your data is handled securely and in accordance with our [Privacy Policy].''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '''Limitation of Liability
+We are not liable for any decisions you make or outcomes you experience based on the chatbot's guidance.''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '''Misuse & Termination
+Any misuse of the chatbot or breach of these terms may result in immediate suspension or termination of your access.''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 18),
+                Text(
+                  '''By continuing to use this service, you acknowledge and accept these terms. If you have any questions, please contact our support team.''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            children: children,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Widget? trailing;
-  final VoidCallback? onTap;
-  final Color? titleColor;
-
-  const _SettingsTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.trailing,
-    this.onTap,
-    this.titleColor,
-  });
+class TermsAndConditionsPage extends StatelessWidget {
+  const TermsAndConditionsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: (titleColor ?? const Color(0xFF3A2313)).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                color: titleColor ?? const Color(0xFF3A2313),
-                size: 20,
-              ),
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.black),
+        title: const Text(
+          'Terms & Conditions',
+          style: TextStyle(
+            color: Colors.black,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+      ),
+      backgroundColor: const Color(0xFFEBE9E7),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: SingleChildScrollView(
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF3A2313),
+              borderRadius: BorderRadius.circular(18),
             ),
-            const SizedBox(width: 16),
-            Expanded(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Terms of Use – Business Coach Chatbot',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 18),
+                Text(
+                  'By using the Business Coach Chatbot, you agree to the following terms:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '''The chatbot offers general business insights and advice, and is not a replacement for professional consulting services.''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '''Both free and paid subscription plans are available. Paid plans renew automatically unless canceled.''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '''Your data is processed securely in line with our [Privacy Policy].''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '''We are not liable for any decisions or outcomes resulting from the chatbot's guidance.''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '''Misuse of the service or violation of these terms may lead to suspension or termination of access.''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 18),
+                Text(
+                  '''By continuing to use this service, you confirm your acceptance of these terms. For any questions, please contact our support team.''',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class HelpFormPage extends StatefulWidget {
+  const HelpFormPage({super.key});
+
+  @override
+  State<HelpFormPage> createState() => _HelpFormPageState();
+}
+
+class _HelpFormPageState extends State<HelpFormPage> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _messageController = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  void _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _submitting = true);
+    await Future.delayed(const Duration(seconds: 1)); // Simulate network
+    setState(() => _submitting = false);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Message Sent'),
+        content: const Text(
+          'Thank you for contacting support! We will get back to you soon.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    _formKey.currentState!.reset();
+    _messageController.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.black),
+        title: const Text(
+          'Help & Support',
+          style: TextStyle(
+            color: Colors.black,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+      ),
+      backgroundColor: const Color(0xFFEBE9E7),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 150),
+        child: Center(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(40),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    title,
+                  const Text(
+                    'Contact Support',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
-                      color: titleColor ?? const Color(0xFF222831),
+                      color: Color(0xFF3A2313),
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w400,
-                      fontSize: 12,
-                      color: Color(0xFFBABCBF),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 500,
+                    child: TextFormField(
+                      controller: _messageController,
+                      decoration: const InputDecoration(
+                        labelText: 'Message',
+                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                      expands: true,
+                      maxLines: null,
+                      minLines: null,
+                      textAlignVertical: TextAlignVertical.top, //
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
+                          ? 'Please enter your message'
+                          : null,
                     ),
+                  ),
+                  const SizedBox(height: 22),
+                  ElevatedButton(
+                    onPressed: _submitting ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3A2313),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: _submitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Submit',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ],
               ),
             ),
-            if (trailing != null) trailing!,
-          ],
+          ),
         ),
       ),
     );

@@ -697,7 +697,7 @@ class _HomePageState extends State<HomePage> {
                                                     userImage.isNotEmpty
                                                     ? NetworkImage(userImage)
                                                     : const AssetImage(
-                                                            'assets/WelcomeScreen.png',
+                                                            'assets/employee.png',
                                                           )
                                                           as ImageProvider,
                                               ),
@@ -986,228 +986,293 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  static const String baseUrl = 'https://fondify.ai/api';
   late TextEditingController _nameController;
+  late TextEditingController _roleController;
+  late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  bool _isEditing = false;
+  late TextEditingController _dobController;
+  late TextEditingController _countryController;
   bool _isLoading = false;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.profile['name'] ?? '');
-    _phoneController = TextEditingController(
-      text: widget.profile['phone'] ?? '',
-    );
+    final p = widget.profile;
+    _nameController = TextEditingController(text: p['name'] ?? '');
+    _roleController = TextEditingController(text: p['role'] ?? '');
+    _emailController = TextEditingController(text: p['email'] ?? '');
+    _phoneController = TextEditingController(text: p['phone'] ?? '');
+    _dobController = TextEditingController(text: p['dob'] ?? '');
+    _countryController = TextEditingController(text: p['country'] ?? '');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _roleController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
+    _dobController.dispose();
+    _countryController.dispose();
     super.dispose();
   }
 
   Future<void> _updateProfile() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-
-      if (token == null) {
-        throw Exception('No authentication token found');
-      }
-
-      // Handle development token with mock update
-      if (token == 'dev_mock_token_for_ui_testing') {
-        await Future.delayed(const Duration(seconds: 1)); // Simulate API delay
-
-        // Update the profile data in UserDataManager
-        await UserDataManager.instance.updateField(
-          'name',
-          _nameController.text.trim(),
-        );
-        await UserDataManager.instance.updateField(
-          'phone',
-          _phoneController.text.trim(),
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully! (Demo Mode)'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        setState(() {
-          _isEditing = false;
-          widget.profile['name'] = _nameController.text.trim();
-          widget.profile['phone'] = _phoneController.text.trim();
-        });
-        return;
-      }
-
-      final response = await http.patch(
-        Uri.parse('$baseUrl/auth/profile/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'name': _nameController.text.trim(),
-          'phone': _phoneController.text.trim(),
-        }),
-      );
-
-      print('Profile update response: ${response.statusCode} ${response.body}');
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        setState(() {
-          _isEditing = false;
-          widget.profile['name'] = _nameController.text.trim();
-          widget.profile['phone'] = _phoneController.text.trim();
-        });
-      } else {
-        final data = jsonDecode(response.body);
-        throw Exception(data['detail'] ?? 'Profile update failed');
-      }
-    } catch (e) {
-      print('Profile update error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Profile update failed: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+    final updated = {
+      'name': _nameController.text.trim(),
+      'role': _roleController.text.trim(),
+      'email': _emailController.text.trim(),
+      'phone': _phoneController.text.trim(),
+      'dob': _dobController.text.trim(),
+      'country': _countryController.text.trim(),
+      'image': widget.profile['image'] ?? '',
+    };
+    await UserDataManager.instance.updateProfile(updated);
+    setState(() => _isLoading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Profile updated!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+    Navigator.of(context).pop(updated);
   }
 
   @override
   Widget build(BuildContext context) {
+    final avatar = (widget.profile['image'] ?? '').isNotEmpty
+        ? NetworkImage(widget.profile['image'])
+        : const AssetImage('assets/employee.png') as ImageProvider;
     return Scaffold(
+      backgroundColor: const Color(0xFFEBE9E7),
       appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: const Color(0xFF3A2313),
-        foregroundColor: Colors.white,
-        actions: [
-          if (!_isEditing && !_isLoading)
-            IconButton(
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
-              icon: const Icon(Icons.edit),
-            ),
-          if (_isEditing && !_isLoading)
-            TextButton(
-              onPressed: _updateProfile,
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
-            ),
-          if (_isEditing && !_isLoading)
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _isEditing = false;
-                  _nameController.text = widget.profile['name'] ?? '';
-                  _phoneController.text = widget.profile['phone'] ?? '';
-                });
-              },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.white70),
-              ),
-            ),
-        ],
+        backgroundColor: Colors.white,
+        elevation: 1,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black,
+          ),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: Colors.black,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  CircleAvatar(
-                    radius: 48,
-                    backgroundImage: (widget.profile['image'] ?? '').isNotEmpty
-                        ? NetworkImage(widget.profile['image'])
-                        : const AssetImage('assets/WelcomeScreen.png')
-                              as ImageProvider,
-                  ),
-                  const SizedBox(height: 16),
-                  if (_isEditing) ...[
-                    TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Name',
-                        border: OutlineInputBorder(),
-                      ),
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 20,
-                      ),
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 32,
+                ),
+                child: Center(
+                  child: Container(
+                    width: 375,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 0,
+                      vertical: 24,
                     ),
-                  ] else ...[
-                    Text(
-                      widget.profile['name'] ?? '-',
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.profile['role'] ?? '-',
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w400,
-                      fontSize: 14,
-                      color: Colors.black54,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ListTile(
-                    leading: const Icon(Icons.email),
-                    title: const Text('Email'),
-                    subtitle: Text(widget.profile['email'] ?? '-'),
-                  ),
-                  if (_isEditing) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: TextField(
-                        controller: _phoneController,
-                        decoration: const InputDecoration(
-                          labelText: 'Phone',
-                          prefixIcon: Icon(Icons.phone),
-                          border: OutlineInputBorder(),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(26),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 63,
+                            backgroundColor: const Color(0xFFD9D9D9),
+                            backgroundImage: avatar,
+                          ),
+                          const SizedBox(height: 18),
+                          _ProfileField(
+                            label: 'Name',
+                            controller: _nameController,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Inter',
+                            validator: (v) => v == null || v.trim().isEmpty
+                                ? 'Name required'
+                                : null,
+                          ),
+                          _ProfileField(
+                            label: 'Role',
+                            controller: _roleController,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            fontFamily: 'Inter',
+                          ),
+                          const SizedBox(height: 18),
+                          _ProfileLabel('Email'),
+                          _ProfileField(
+                            controller: _emailController,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            fontFamily: 'Poppins',
+                            validator: (v) => v == null || !v.contains('@')
+                                ? 'Enter a valid email'
+                                : null,
+                          ),
+                          const Divider(
+                            height: 32,
+                            thickness: 1,
+                            color: Color(0x22844C4C),
+                          ),
+                          _ProfileLabel('Cell'),
+                          _ProfileField(
+                            controller: _phoneController,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            fontFamily: 'Poppins',
+                            validator: (v) => v == null || v.trim().length < 7
+                                ? 'Enter a valid phone'
+                                : null,
+                          ),
+                          const Divider(
+                            height: 32,
+                            thickness: 1,
+                            color: Color(0x22844C4C),
+                          ),
+                          _ProfileLabel('Date of Birth'),
+                          _ProfileField(
+                            controller: _dobController,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            fontFamily: 'Poppins',
+                            hintText: 'DD/MM/YYYY',
+                          ),
+                          const Divider(
+                            height: 32,
+                            thickness: 1,
+                            color: Color(0x22844C4C),
+                          ),
+                          _ProfileLabel('Country/Region'),
+                          _ProfileField(
+                            controller: _countryController,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            fontFamily: 'Poppins',
+                          ),
+                          const SizedBox(height: 32),
+                          SizedBox(
+                            width: 152,
+                            height: 35,
+                            child: ElevatedButton(
+                              onPressed: _updateProfile,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF3A2313),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                elevation: 4,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 28,
+                                  vertical: 8,
+                                ),
+                              ),
+                              child: const Text(
+                                'Update',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ] else ...[
-                    ListTile(
-                      leading: const Icon(Icons.phone),
-                      title: const Text('Phone'),
-                      subtitle: Text(widget.profile['phone'] ?? '-'),
-                    ),
-                  ],
-                ],
+                  ),
+                ),
               ),
             ),
+    );
+  }
+}
+
+class _ProfileLabel extends StatelessWidget {
+  final String text;
+  const _ProfileLabel(this.text);
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 24, bottom: 2, top: 8),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w700,
+            fontSize: 15.6,
+            color: Color(0xFF222222),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileField extends StatelessWidget {
+  final String? label;
+  final TextEditingController controller;
+  final double fontSize;
+  final FontWeight fontWeight;
+  final String fontFamily;
+  final String? hintText;
+  final String? Function(String?)? validator;
+  const _ProfileField({
+    this.label,
+    required this.controller,
+    required this.fontSize,
+    required this.fontWeight,
+    required this.fontFamily,
+    this.hintText,
+    this.validator,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      child: TextFormField(
+        controller: controller,
+        validator: validator,
+        style: TextStyle(
+          fontFamily: fontFamily,
+          fontWeight: fontWeight,
+          fontSize: fontSize,
+          color: const Color(0xFF222222),
+        ),
+        decoration: InputDecoration(
+          hintText: hintText,
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 6),
+        ),
+      ),
     );
   }
 }
