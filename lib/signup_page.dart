@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'otpverification.dart';
+import 'home_page.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -15,6 +19,8 @@ class _SignUpPageState extends State<SignUpPage> {
       TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -24,6 +30,77 @@ class _SignUpPageState extends State<SignUpPage> {
     _confirmPasswordController.dispose();
     super.dispose();
   }
+
+  Future<void> _signUp() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final url = Uri.parse('https://fondify.ai/api/auth/signup/');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text,
+        }),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created! Please verify your email.'),
+          ),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => OTPVerificationPage(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+              onVerified: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+            ),
+          ),
+        );
+      } else {
+        try {
+          final data = jsonDecode(response.body);
+          String? errorMsg;
+          if (data['detail'] != null) {
+            if (data['detail'] is List) {
+              errorMsg = (data['detail'] as List).map((e) => e.toString()).join("\n");
+            } else {
+              errorMsg = data['detail'].toString();
+            }
+          } else if (data['message'] != null) {
+            errorMsg = data['message'].toString();
+          } else {
+            errorMsg = 'Sign up failed.';
+          }
+          setState(() {
+            _errorMessage = errorMsg;
+          });
+        } catch (e) {
+          setState(() {
+            _errorMessage = 'Sign up failed. Status: ${response.statusCode}';
+          });
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Network error. Please try again.';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -45,15 +122,16 @@ class _SignUpPageState extends State<SignUpPage> {
             ),
             child: Stack(
               children: [
-              Positioned.fill(
-                child: ClipRRect(                      // ← ADDED
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(28),   // ← ADDED
-                    bottomRight: Radius.circular(28),  // ← ADDED
+                Positioned.fill(
+                  child: ClipRRect(
+                    // ← ADDED
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(28), // ← ADDED
+                      bottomRight: Radius.circular(28), // ← ADDED
+                    ),
+                    child: Image.asset('assets/Star.png', fit: BoxFit.cover),
                   ),
-                  child: Image.asset('assets/Star.png', fit: BoxFit.cover),
                 ),
-              ),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
@@ -107,7 +185,11 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                 ],
               ),
-              transform: Matrix4.translationValues(0, -56, 0), // ← ADDED (moved up 56px)
+              transform: Matrix4.translationValues(
+                0,
+                -56,
+                0,
+              ), // ← ADDED (moved up 56px)
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
@@ -284,18 +366,45 @@ class _SignUpPageState extends State<SignUpPage> {
                             borderRadius: BorderRadius.circular(25),
                           ),
                         ),
-                        onPressed: () {},
-                        child: const Text(
-                          'SIGN UP',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                                if (_passwordController.text !=
+                                    _confirmPasswordController.text) {
+                                  setState(() {
+                                    _errorMessage = 'Passwords do not match';
+                                  });
+                                  return;
+                                }
+                                _signUp();
+                              },
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'SIGN UP',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
                       ),
                     ),
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     // Already have an account? Sign In
                     Row(

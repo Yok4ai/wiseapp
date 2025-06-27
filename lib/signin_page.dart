@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'signup_page.dart';
 import 'forgot_password_page.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'home_page.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -13,6 +16,12 @@ class _SignInPageState extends State<SignInPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _developmentMode = true; // Set to false for production
+
+  // BASE_URL sourced from Lorerocca.postman_collection.json
+  static const String baseUrl = 'https://fondify.ai/api';
 
   @override
   void dispose() {
@@ -20,6 +29,95 @@ class _SignInPageState extends State<SignInPage> {
     _passwordController.dispose();
     super.dispose();
   }
+
+  Future<void> _signIn() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final url = Uri.parse('${baseUrl}/auth/login/');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text,
+        }),
+      );
+      print('Login response: ${response.statusCode} ${response.body}');
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        
+        // Success: handle token, navigate, etc.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sign in successful!')),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      } else {
+        try {
+          final data = jsonDecode(response.body);
+          String? errorMsg;
+          if (data['detail'] != null) {
+            if (data['detail'] is List) {
+              errorMsg = (data['detail'] as List).map((e) => e.toString()).join("\n");
+            } else {
+              errorMsg = data['detail'].toString();
+            }
+          } else if (data['message'] != null) {
+            errorMsg = data['message'].toString();
+          } else {
+            errorMsg = 'Sign in failed.';
+          }
+          
+          // Development bypass for approval issues
+          if (_developmentMode && errorMsg != null && (errorMsg.toLowerCase().contains('approval') || 
+              errorMsg.toLowerCase().contains('pending') || 
+              errorMsg.toLowerCase().contains('admin'))) {
+            
+            // Show development bypass message
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('⚠️ Development Mode: Bypassing admin approval for demo purposes'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            
+            // Navigate to home page after a short delay
+            Future.delayed(const Duration(seconds: 1), () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const HomePage()),
+              );
+            });
+            return;
+          }
+          
+          // Show the actual error message from the server
+          setState(() {
+            _errorMessage = errorMsg;
+          });
+        } catch (e) {
+          setState(() {
+            _errorMessage = 'Sign in failed. Status: ${response.statusCode}';
+          });
+        }
+      }
+    } catch (e) {
+      print('Sign-in error: ' + e.toString());
+      setState(() {
+        _errorMessage = 'Network error. Please try again.';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -232,18 +330,69 @@ class _SignInPageState extends State<SignInPage> {
                             borderRadius: BorderRadius.circular(25),
                           ),
                         ),
-                        onPressed: () {},
-                        child: const Text(
-                          'SIGN IN',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
+                        onPressed: _isLoading ? null : _signIn,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'SIGN IN',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
                       ),
                     ),
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ],
+                    if (_developmentMode) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.developer_mode, color: Colors.orange, size: 16),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'Development Mode: Auto-bypass enabled',
+                                style: TextStyle(
+                                  color: Colors.orange,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _developmentMode = !_developmentMode;
+                                });
+                              },
+                              child: const Icon(Icons.settings, color: Colors.orange, size: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     // Sign Up Prompt
                     Row(
