@@ -4,6 +4,7 @@ import 'forgot_password_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'home_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -19,6 +20,12 @@ class _SignInPageState extends State<SignInPage> {
   bool _isLoading = false;
   String? _errorMessage;
   bool _developmentMode = true; // Set to false for production
+
+  // For testing - use these credentials from Postman collection
+  void _fillTestCredentials() {
+    _emailController.text = 'mdsadiqulislam446@gmail.com';
+    _passwordController.text = '123abc!@#';
+  }
 
   // BASE_URL sourced from Lorerocca.postman_collection.json
   static const String baseUrl = 'https://fondify.ai/api';
@@ -46,14 +53,20 @@ class _SignInPageState extends State<SignInPage> {
         }),
       );
       print('Login response: ${response.statusCode} ${response.body}');
-      
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        
+        print('Login success data: $data');
+        final accessToken = data['access'];
+        if (accessToken != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('access_token', accessToken);
+          print('Token saved: ${accessToken.substring(0, 20)}...');
+        }
         // Success: handle token, navigate, etc.
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sign in successful!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sign in successful!')));
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const HomePage()),
         );
@@ -63,7 +76,9 @@ class _SignInPageState extends State<SignInPage> {
           String? errorMsg;
           if (data['detail'] != null) {
             if (data['detail'] is List) {
-              errorMsg = (data['detail'] as List).map((e) => e.toString()).join("\n");
+              errorMsg = (data['detail'] as List)
+                  .map((e) => e.toString())
+                  .join("\n");
             } else {
               errorMsg = data['detail'].toString();
             }
@@ -72,22 +87,28 @@ class _SignInPageState extends State<SignInPage> {
           } else {
             errorMsg = 'Sign in failed.';
           }
-          
+
           // Development bypass for approval issues
-          if (_developmentMode && errorMsg != null && (errorMsg.toLowerCase().contains('approval') || 
-              errorMsg.toLowerCase().contains('pending') || 
-              errorMsg.toLowerCase().contains('admin'))) {
+          if (_developmentMode &&
+              errorMsg != null &&
+              (errorMsg.toLowerCase().contains('approval') ||
+                  errorMsg.toLowerCase().contains('pending') ||
+                  errorMsg.toLowerCase().contains('admin'))) {
+            // Generate a mock token for development - this will fail API calls but allow UI testing
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('access_token', 'dev_mock_token_for_ui_testing');
             
-            // Show development bypass message
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('⚠️ Development Mode: Bypassing admin approval for demo purposes'),
+                content: Text(
+                  '⚠️ DEV MODE: Bypassing approval. Note: API calls will fail but UI is testable.',
+                ),
                 backgroundColor: Colors.orange,
                 duration: Duration(seconds: 3),
               ),
             );
-            
-            // Navigate to home page after a short delay
+
+            // Navigate to home page
             Future.delayed(const Duration(seconds: 1), () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => const HomePage()),
@@ -95,7 +116,7 @@ class _SignInPageState extends State<SignInPage> {
             });
             return;
           }
-          
+
           // Show the actual error message from the server
           setState(() {
             _errorMessage = errorMsg;
@@ -117,7 +138,6 @@ class _SignInPageState extends State<SignInPage> {
       });
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -365,29 +385,59 @@ class _SignInPageState extends State<SignInPage> {
                         decoration: BoxDecoration(
                           color: Colors.orange.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                          border: Border.all(
+                            color: Colors.orange.withOpacity(0.3),
+                          ),
                         ),
-                        child: Row(
+                        child: Column(
                           children: [
-                            const Icon(Icons.developer_mode, color: Colors.orange, size: 16),
-                            const SizedBox(width: 8),
-                            const Expanded(
-                              child: Text(
-                                'Development Mode: Auto-bypass enabled',
-                                style: TextStyle(
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.developer_mode,
                                   color: Colors.orange,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'Development Mode: Auto-bypass enabled',
+                                    style: TextStyle(
+                                      color: Colors.orange,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _developmentMode = !_developmentMode;
+                                    });
+                                  },
+                                  child: const Icon(
+                                    Icons.settings,
+                                    color: Colors.orange,
+                                    size: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                ),
+                                onPressed: _fillTestCredentials,
+                                child: const Text(
+                                  'Use Test Credentials (Real API)',
+                                  style: TextStyle(fontSize: 12),
                                 ),
                               ),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _developmentMode = !_developmentMode;
-                                });
-                              },
-                              child: const Icon(Icons.settings, color: Colors.orange, size: 16),
                             ),
                           ],
                         ),

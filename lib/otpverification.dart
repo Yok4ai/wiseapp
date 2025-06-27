@@ -63,11 +63,15 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
         try {
           final data = jsonDecode(response.body);
           setState(() {
-            _errorMessage = data['detail']?.toString() ?? data['message']?.toString() ?? 'Failed to send OTP';
+            _errorMessage =
+                data['detail']?.toString() ??
+                data['message']?.toString() ??
+                'Failed to send OTP';
           });
         } catch (e) {
           setState(() {
-            _errorMessage = 'Failed to send OTP. Status: ${response.statusCode}';
+            _errorMessage =
+                'Failed to send OTP. Status: ${response.statusCode}';
           });
         }
       }
@@ -109,11 +113,13 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Email verified successfully! You can now try signing in.'),
+            content: Text(
+              'Email verified successfully! You can now try signing in.',
+            ),
             duration: Duration(seconds: 3),
           ),
         );
-        
+
         if (widget.onVerified != null) {
           widget.onVerified!();
         } else {
@@ -123,7 +129,10 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
         try {
           final data = jsonDecode(response.body);
           setState(() {
-            _errorMessage = data['detail']?.toString() ?? data['message']?.toString() ?? 'Invalid OTP';
+            _errorMessage =
+                data['detail']?.toString() ??
+                data['message']?.toString() ??
+                'Invalid OTP';
           });
         } catch (e) {
           setState(() {
@@ -141,7 +150,6 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
       });
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
